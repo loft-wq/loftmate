@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="format-detection" content="telephone=no">
+    <title>إدارة الحمام الزاجل</title>
+    <meta name="description" content="تطبيق شامل لإدارة وتتبع الحمام الزاجل والمشاركة في المسابقات">
+    <meta name="keywords" content="حمام زاجل, إدارة الحمام, مسابقات الحمام, تربية الحمام">
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#667eea">
+</head>
+<body>
+    <div class="container">
+        <div class="header fade-in">
+            <button class="theme-toggle" onclick="toggleTheme()" title="تبديل الوضع المظلم/النهاري">🌙</button>
+            <h1>إدارة الحمام الزاجل</h1>
+            <p>نظام شامل لإدارة وتتبع الحمام الزاجل والمشاركة في المسابقات</p>
+        </div>
+
+        <div class="fade-in" id="loginSection">
+            <div class="login-form">
+                <h2>مرحباً بك</h2>
+                <div class="form-group">
+                    <label>اسم المستخدم:</label>
+                    <input autocomplete="username" id="username" placeholder="أدخل اسمك" type="text">
+                </div>
+                <div class="form-group">
+                    <label>كلمة المرور:</label>
+                    <input autocomplete="current-password" id="password" placeholder="أدخل كلمة المرور" type="password">
+                </div>
+                <button class="btn" onclick="login()" style="width: 100%;">تسجيل الدخول</button>
+            </div>
+        </div>
+        
+        <div class="hidden" id="mainApp">
+            <div class="user-info slide-in">
+                <span>أهلاً وسهلاً، <strong id="currentUser"></strong></span>
+                <button class="btn btn-cancel" onclick="logout()">تسجيل خروج</button>
+            </div>
+
+            <!-- شريط الإحصائيات -->
+            <div class="stats-bar fade-in">
+                <div class="stat-item">
+                    <span class="stat-number" id="totalCount">0</span>
+                    <div class="stat-label">إجمالي الحمام</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="maleCount">0</span>
+                    <div class="stat-label">ذكور</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="femaleCount">0</span>
+                    <div class="stat-label">إناث</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="youngCount">0</span>
+                    <div class="stat-label">صغار (2025)</div>
+                </div>
+            </div>
+
+            <!-- البحث والفلاتر -->
+            <div class="search-filters fade-in">
+                <div class="search-row">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <input id="searchInput" onkeyup="filterPigeons()" placeholder="🔍 البحث بالاسم أو رقم الحلقة..." type="text">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <select id="countryFilter" onchange="filterPigeons()">
+                            <option value="">جميع البلدان</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <select id="breedFilter" onchange="filterPigeons()">
+                            <option value="">جميع السلالات</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <select id="colorFilter" onchange="filterPigeons()">
+                            <option value="">جميع الألوان</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-info btn-small" onclick="clearFilters()">🗑️</button>
+                </div>
+            </div>
+
+            <div class="nav-buttons fade-in">
+                <button class="btn btn-success" onclick="showAddForm()">➕ إضافة حمامة</button>
+                <button class="btn btn-info" onclick="showPigeonsList()">📋 قائمة الحمام</button>
+                <button class="btn btn-warning" onclick="showRaceManager()">🏆 المسابقات</button>
+                <button class="btn" onclick="exportData()">💾 تصدير البيانات</button>
+                <button class="btn btn-info" onclick="generatePDF()">📄 PDF</button>
+            </div>
+
+            <!-- قسم الاستيراد/التصدير -->
+            <div class="import-export fade-in">
+                <input accept=".json" class="file-input" id="fileInput" onchange="importData(event)" type="file">
+                <label class="file-label" for="fileInput">📁 استيراد البيانات</label>
+                <button class="btn btn-cancel btn-small" onclick="clearAllData()">🗑️ مسح الكل</button>
+            </div>
+
+            <div class="hidden" id="addForm">
+                <h2 style="color: #667eea; text-align: center; margin-bottom: 30px;">
+                    <span id="formTitle">إضافة حمامة جديدة</span>
+                </h2>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>رقم الحلقة (مثال: 25-01741):</label>
+                        <input id="ringNumber" placeholder="25-01741" type="text">
+                    </div>
+                    <div class="form-group">
+                        <label>بلد المنشأ:</label>
+                        <select id="country">
+                            <option value="">اختر البلد</option>
+                            <option value="🇲🇦">🇲🇦 المغرب</option>
+                            <option value="🇫🇷">🇫🇷 فرنسا</option>
+                            <option value="🇧🇪">🇧🇪 بلجيكا</option>
+                            <option value="🇳🇱">🇳🇱 هولندا</option>
+                            <option value="🇩🇪">🇩🇪 ألمانيا</option>
+                            <option value="🇬🇧">🇬🇧 بريطانيا</option>
+                            <option value="🇪🇸">🇪🇸 إسبانيا</option>
+                            <option value="🇮🇹">🇮🇹 إيطاليا</option>
+                            <option value="🇺🇸">🇺🇸 أمريكا</option>
+                            <option value="🇹🇷">🇹🇷 تركيا</option>
+                            <option value="🇵🇱">🇵🇱 بولندا</option>
+                            <option value="🇨🇿">🇨🇿 التشيك</option>
+                            <option value="🇦🇺">🇦🇺 أستراليا</option>
+                            <option value="🇿🇦">🇿🇦 جنوب أفريقيا</option>
+                            <option value="🇨🇳">🇨🇳 الصين</option>
+                            <option value="🇯🇵">🇯🇵 اليابان</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>اسم الحمامة:</label>
+                        <input id="pigeonName" placeholder="اسم الحمامة" type="text">
+                    </div>
+                    <div class="form-group">
+                        <label>لون الحلقة:</label>
+                        <select id="ringColor">
+                            <option value="">اختر اللون</option>
+                            <option value="أحمر">🔴 أحمر</option>
+                            <option value="أزرق">🔵 أزرق</option>
+                            <option value="أخضر">🟢 أخضر</option>
+                            <option value="أصفر">🟡 أصفر</option>
+                            <option value="برتقالي">🟠 برتقالي</option>
+                            <option value="بنفسجي">🟣 بنفسجي</option>
+                            <option value="أسود">⚫ أسود</option>
+                            <option value="أبيض">⚪ أبيض</option>
+                            <option value="فضي">🔘 فضي</option>
+                            <option value="ذهبي">🟡 ذهبي</option>
+                            <option value="وردي">🌸 وردي</option>
+                            <option value="بني">🟤 بني</option>
+                        </select>
+                    </div>
+                </div>
+        
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>لون الحمامة:</label>
+                        <select id="pigeonColor">
+                            <option value="">اختر اللون</option>
+                            <option value="أزرق">🔵 أزرق</option>
+                            <option value="أزرق مخطط">🔵 أزرق مخطط</option>
+                            <option value="أزرق متقشر">🔵 أزرق متقشر</option>
+                            <option value="أحمر">🔴 أحمر</option>
+                            <option value="أحمر مخطط">🔴 أحمر مخطط</option>
+                            <option value="أحمر متقشر">🔴 أحمر متقشر</option>
+                            <option value="أسود">⚫ أسود</option>
+                            <option value="بني">🟤 بني</option>
+                            <option value="رمادي فاتح">🟫 رمادي فاتح</option>
+                            <option value="أبيض">⚪ أبيض</option>
+                            <option value="رمادي">⚪ رمادي</option>
+                            <option value="رمادي غامق">⚫ رمادي غامق</option>
+                            <option value="بيج">🟨 بيج</option>
+                            <option value="متعدد الألوان">🎨 متعدد الألوان</option>
+                            <option value="أبقع">🎨 أبقع</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>سلالة الحمامة:</label>
+                        <select id="breed">
+                            <option value="">اختر السلالة</option>
+                            <option value="جانسن">🏆 جانسن</option>
+                            <option value="فان ريت">🏆 فان ريت</option>
+                            <option value="ستيشلبوت">🏆 ستيشلبوت</option>
+                            <option value="جابي فاندنابيلي">🏆 جابي فاندنابيلي</option>
+                            <option value="جوس ثون">🏆 جوس ثون</option>
+                            <option value="مارسيل البريشت">🏆 مارسيل البريشت</option>
+                            <option value="ديرك فان ديك">🏆 ديرك فان ديك</option>
+                            <option value="كوبمان">🏆 كوبمان</option>
+                            <option value="فان لون">🏆 فان لون</option>
+                            <option value="هوفكن">🏆 هوفكن</option>
+                            <option value="موليمانز">🏆 موليمانز</option>
+                            <option value="دي راو سابلون">🏆 دي راو سابلون</option>
+                            <option value="آردن">🏆 آردن</option>
+                            <option value="كاتريس">🏆 كاتريس</option>
+                            <option value="سيون">🏆 سيون</option>
+                            <option value="فلور إنجلز">🏆 فلور إنجلز</option>
+                            <option value="كارلوس بيريرا">🏆 كارلوس بيريرا</option>
+                            <option value="ليو هيرمانز">🏆 ليو هيرمانز</option>
+                            <option value="ديويردت">🏆 ديويردت</option>
+                            <option value="فان دير ويجن">🏆 فان دير ويجن</option>
+                            <option value="جيرارد كوبمان">🏆 جيرارد كوبمان</option>
+                            <option value="أخرى">➕ أخرى</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>المالك:</label>
+                        <input id="owner" placeholder="اسم المالك" type="text">
+                    </div>
+                    <div class="form-group">
+                        <label>الجنس:</label>
+                        <select id="gender">
+                            <option value="">اختر الجنس</option>
+                            <option value="ذكر">♂️ ذكر</option>
+                            <option value="أنثى">♀️ أنثى</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>حلقة الأب:</label>
+                        <input id="fatherRing" placeholder="رقم حلقة الأب" type="text">
+                    </div>
+                    <div class="form-group">
+                        <label>حلقة الأم:</label>
+                        <input id="motherRing" placeholder="رقم حلقة الأم" type="text">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>ملاحظات:</label>
+                    <textarea id="notes" placeholder="معلومات إضافية عن الحمامة..." rows="4"></textarea>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <button class="btn btn-success" onclick="savePigeon()">
+                        <span id="saveButtonText">حفظ</span>
+                    </button>
+                    <button class="btn btn-cancel" onclick="showPigeonsList()">إلغاء</button>
+                </div>
+            </div>
+
+            <!-- إدارة المسابقات -->
+            <div class="hidden" id="raceManager">
+                <h2 style="color: #667eea; text-align: center; margin-bottom: 30px;">🏆 إدارة المسابقات</h2>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>اسم المسابقة:</label>
+                        <input id="raceName" placeholder="اسم المسابقة" type="text">
+                    </div>
+                    <div class="form-group">
+                        <label>التاريخ:</label>
+                        <input id="raceDate" type="date">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>المسافة (كم):</label>
+                        <input id="raceDistance" min="1" placeholder="500" type="number">
+                    </div>
+                    <div class="form-group">
+                        <label>الحمامة المشاركة:</label>
+                        <select id="raceParticipant">
+                            <option value="">اختر الحمامة</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>المركز:</label>
+                        <input id="racePosition" min="1" placeholder="1" type="number">
+                    </div>
+                    <div class="form-group">
+                        <label>السرعة (م/دقيقة):</label>
+                        <input id="raceSpeed" min="1" placeholder="1200" type="number">
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="btn btn-success" onclick="addRaceResult()">إضافة النتيجة</button>
+                    <button class="btn btn-cancel" onclick="showPigeonsList()">العودة</button>
+                </div>
+            </div>
+
+            <div class="hidden" id="pigeonsList">
+                <div id="pigeonsContent">
+                    <div class="empty-state">
+                        لا توجد حمامات مسجلة. انقر على "إضافة حمامة" للبدء.
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- نافذة التعديل -->
+        <div class="modal" id="editModal">
+            <div class="modal-content">
+                <span class="close" onclick="closeEditModal()">✕</span>
+                <h2>تعديل الحمامة</h2>
+                <div id="editFormContent">
+                    <!-- محتوى نموذج التعديل سيتم إدراجه هنا -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // تسجيل Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                        console.log('تم تسجيل Service Worker بنجاح:', registration.scope);
+                    })
+                    .catch(function(error) {
+                        console.log('فشل في تسجيل Service Worker:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
