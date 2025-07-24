@@ -9,7 +9,15 @@
 <meta content="Professional racing pigeon management system for breeders and enthusiasts" name="description"/>
 <meta content="racing pigeons, pigeon breeding, pigeon management, homing pigeons" name="keywords"/>
 <meta content="#667eea" name="theme-color"/>
-
+  
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#667eea">
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js');
+  }
+</script>
+  
 <link href="style.css" rel="stylesheet"/></head>
 <body>
 <div class="container">
