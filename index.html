@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+
+<html dir="ltr" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, user-scalable=yes" name="viewport"/>
+<meta content="telephone=no" name="format-detection"/>
+<title>Racing Pigeon Manager</title>
+<meta content="Professional racing pigeon management system for breeders and enthusiasts" name="description"/>
+<meta content="racing pigeons, pigeon breeding, pigeon management, homing pigeons" name="keywords"/>
+<meta content="#667eea" name="theme-color"/>
+
+<link href="style.css" rel="stylesheet"/></head>
+<body>
+<div class="container">
+<div class="header fade-in">
+<button class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">🌙</button>
+<h1>Racing Pigeon Manager</h1>
+<p>Professional breeding &amp; racing management system</p>
+</div>
+<div class="fade-in" id="loginSection">
+<div class="login-form">
+<h2>Welcome</h2>
+<div class="form-group">
+<label>Username:</label>
+<input autocomplete="username" id="username" placeholder="Enter your name" type="text"/>
+</div>
+<div class="form-group">
+<label>Password:</label>
+<input autocomplete="current-password" id="password" placeholder="Enter password" type="password"/>
+</div>
+<button class="btn" onclick="login()" style="width: 100%;">Login</button>
+</div>
+</div>
+<div class="hidden" id="mainApp">
+<div class="user-info slide-in">
+<span>Welcome, <strong id="currentUser"></strong></span>
+<button class="btn btn-cancel" onclick="logout()">Logout</button>
+</div>
+<!-- Statistics Bar -->
+<div class="stats-bar fade-in">
+<div class="stat-item">
+<span class="stat-number" id="totalCount">0</span>
+<div class="stat-label">Total Birds</div>
+</div>
+<div class="stat-item">
+<span class="stat-number" id="maleCount">0</span>
+<div class="stat-label">Cocks</div>
+</div>
+<div class="stat-item">
+<span class="stat-number" id="femaleCount">0</span>
+<div class="stat-label">Hens</div>
+</div>
+<div class="stat-item">
+<span class="stat-number" id="youngCount">0</span>
+<div class="stat-label">Young Birds (2025)</div>
+</div>
+</div>
+<!-- Search and Filters -->
+<div class="search-filters fade-in">
+<div class="search-row">
+<div class="form-group" style="margin-bottom: 0;">
+<input id="searchInput" onkeyup="filterPigeons()" placeholder="🔍 Search by name or ring number..." type="text"/>
+</div>
+<div class="form-group" style="margin-bottom: 0;">
+<select id="countryFilter" onchange="filterPigeons()">
+<option value="">All Countries</option>
+</select>
+</div>
+<div class="form-group" style="margin-bottom: 0;">
+<select id="strainFilter" onchange="filterPigeons()">
+<option value="">All Strains</option>
+</select>
+</div>
+<div class="form-group" style="margin-bottom: 0;">
+<select id="colorFilter" onchange="filterPigeons()">
+<option value="">All Colors</option>
+</select>
+</div>
+<button class="btn btn-info btn-small" onclick="clearFilters()">🗑️</button>
+</div>
+</div>
+<div class="nav-buttons fade-in">
+<button class="btn btn-success" onclick="showAddForm()">➕ Add Pigeon</button>
+<button class="btn btn-info" onclick="showPigeonsList()">📋 Pigeon List</button>
+<button class="btn btn-warning" onclick="showRaceManager()">🏆 Race Results</button>
+<button class="btn" onclick="showPedigreeTree()">🌳 Pedigree Tree</button>
+<button class="btn btn-info" onclick="showExportOptions()">📄 Export Data</button>
+</div>
+<!-- Import/Export Section -->
+<div class="import-export fade-in">
+<input accept=".json" class="file-input" id="fileInput" onchange="importData(event)" type="file"/>
+<label class="file-label" for="fileInput">📁 Import Data</label>
+<button class="btn btn-cancel btn-small" onclick="clearAllData()">🗑️ Clear All</button>
+</div>
+<div class="hidden" id="addForm">
+<h2 style="color: #667eea; text-align: center; margin-bottom: 30px;">
+<span id="formTitle">Add New Pigeon</span>
+</h2>
+<div class="form-row-three">
+<div class="form-group">
+<label>Ring Number (e.g., 25-01741):</label>
+<input id="ringNumber" placeholder="25-01741" type="text"/>
+</div>
+<div class="form-group">
+<label>Country Code:</label>
+<select id="country">
+<option value="">Select Country</option>
+</select>
+</div>
+<div class="form-group">
+<label>Club Code (Optional):</label>
+<input id="clubCode" placeholder="ABC123" type="text"/>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>Pigeon Name:</label>
+<input id="pigeonName" placeholder="Pigeon name" type="text"/>
+</div>
+<div class="form-group">
+<label>Badge Color:</label>
+<select id="ringColor">
+<option value="">Select Color</option>
+<option value="Red">🔴 Red</option>
+<option value="Blue">🔵 Blue</option>
+<option value="Green">🟢 Green</option>
+<option value="Yellow">🟡 Yellow</option>
+<option value="Orange">🟠 Orange</option>
+<option value="Purple">🟣 Purple</option>
+<option value="Black">⚫ Black</option>
+<option value="White">⚪ White</option>
+<option value="Silver">🔘 Silver</option>
+<option value="Gold">🟡 Gold</option>
+<option value="Pink">🌸 Pink</option>
+<option value="Brown">🟤 Brown</option>
+</select>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>Pigeon Color:</label>
+<select id="pigeonColor">
+<option value="">Select Color</option>
+<option value="Blue">Blue</option>
+<option value="Blue Bar">Blue Bar</option>
+<option value="Blue Check">Blue Check</option>
+<option value="Blue T-Pattern">Blue T-Pattern</option>
+<option value="Kras Blue">Kras Blue</option>
+<option value="Red">Red</option>
+<option value="Red Bar">Red Bar</option>
+<option value="Red Check">Red Check</option>
+<option value="Red T-Pattern">Red T-Pattern</option>
+<option value="Ash Red">Ash Red</option>
+<option value="Black">Black</option>
+<option value="Brown">Brown</option>
+<option value="Dun">Dun</option>
+<option value="Silver">Silver</option>
+<option value="White">White</option>
+<option value="Grizzle">Grizzle</option>
+<option value="Dark Check">Dark Check</option>
+<option value="Mealy">Mealy</option>
+<option value="Pied">Pied</option>
+<option value="Solid">Solid</option>
+<option value="Spread">Spread</option>
+</select>
+</div>
+<div class="form-group">
+<label>Strain/Bloodline:</label>
+<select id="strain" onchange="handleStrainChange()">
+<option value="">Select Strain</option>
+<option value="Janssen">🏆 Janssen</option>
+<option value="Van Reet">🏆 Van Reet</option>
+<option value="Stichelbaut">🏆 Stichelbaut</option>
+<option value="Gaby Vandenabeele">🏆 Gaby Vandenabeele</option>
+<option value="Jos Thone">🏆 Jos Thone</option>
+<option value="Marcel Aelbrecht">🏆 Marcel Aelbrecht</option>
+<option value="Dirk Van Dyck">🏆 Dirk Van Dyck</option>
+<option value="Koopman">🏆 Koopman</option>
+<option value="Van Loon">🏆 Van Loon</option>
+<option value="Hofken">🏆 Hofken</option>
+<option value="Meulemans">🏆 Meulemans</option>
+<option value="De Rauw-Sablon">🏆 De Rauw-Sablon</option>
+<option value="Aarden">🏆 Aarden</option>
+<option value="Catrysse">🏆 Catrysse</option>
+<option value="Sion">🏆 Sion</option>
+<option value="Flor Engels">🏆 Flor Engels</option>
+<option value="Carlos Pereira">🏆 Carlos Pereira</option>
+<option value="Leo Heremans">🏆 Leo Heremans</option>
+<option value="Deweerdt">🏆 Deweerdt</option>
+<option value="Van Der Wegen">🏆 Van Der Wegen</option>
+<option value="Gerard Koopman">🏆 Gerard Koopman</option>
+<option value="Van Bruaene">🏆 Van Bruaene</option>
+<option value="Gaston Van de Wouwer">🏆 Gaston Van de Wouwer</option>
+<option value="Etienne Meirlaen">🏆 Etienne Meirlaen</option>
+<option value="Stefan Lambrechts">🏆 Stefan Lambrechts</option>
+<option value="Kees Bosua">🏆 Kees Bosua</option>
+<option value="Ad Schaerlaeckens">🏆 Ad Schaerlaeckens</option>
+<option value="Piet de Weerd">🏆 Piet de Weerd</option>
+<option value="Gerard Koopman">🏆 Gerard Koopman</option>
+<option value="Louis van Loon">🏆 Louis van Loon</option>
+<option value="Houben-Deweerdt">🏆 Houben-Deweerdt</option>
+<option value="Van Reet-Van Bruaene">🏆 Van Reet-Van Bruaene</option>
+<option value="De Klak">🏆 De Klak</option>
+<option value="Other">➕ Other</option>
+</select>
+<div class="custom-breed-input" id="customStrainInput">
+<input id="customStrain" placeholder="Enter custom strain" type="text"/>
+</div>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>Original by:</label>
+<input id="owner" placeholder="Breeder name" type="text"/>
+</div>
+<div class="form-group">
+<label>Sex:</label>
+<select id="gender">
+<option value="">Select Sex</option>
+<option value="Cock">M - Cock</option>
+<option value="Hen">F - Hen</option>
+</select>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>Father Ring:</label>
+<input id="fatherRing" placeholder="Father ring number" type="text"/>
+</div>
+<div class="form-group">
+<label>Mother Ring:</label>
+<input id="motherRing" placeholder="Mother ring number" type="text"/>
+</div>
+</div>
+<div class="form-group">
+<label>Notes:</label>
+<textarea id="notes" placeholder="Additional information about the pigeon..." rows="4"></textarea>
+</div>
+<div style="text-align: center; margin-top: 30px;">
+<button class="btn btn-success" onclick="savePigeon()">
+<span id="saveButtonText">Save</span>
+</button>
+<button class="btn btn-cancel" onclick="showPigeonsList()">Cancel</button>
+</div>
+</div>
+<!-- Race Manager -->
+<div class="hidden" id="raceManager">
+<h2 style="color: #667eea; text-align: center; margin-bottom: 30px;">🏆 Pigeon Results Management</h2>
+<div class="form-row">
+<div class="form-group">
+<label>Race Name:</label>
+<input id="raceName" placeholder="Race name" type="text"/>
+</div>
+<div class="form-group">
+<label>Date:</label>
+<input id="raceDate" type="date"/>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>Distance (km):</label>
+<input id="raceDistance" min="1" placeholder="500" type="number"/>
+</div>
+<div class="form-group">
+<label>Participating Pigeon:</label>
+<select id="raceParticipant">
+<option value="">Select Pigeon</option>
+</select>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>Classmen:</label>
+<input id="racePosition" min="1" placeholder="1" type="number"/>
+</div>
+<div class="form-group">
+<label>Speed (m/min):</label>
+<input id="raceSpeed" min="1" placeholder="1200" type="number"/>
+</div>
+</div>
+<div style="text-align: center; margin-top: 20px;">
+<button class="btn btn-success" onclick="addRaceResult()">Add Result</button>
+<button class="btn btn-cancel" onclick="showPigeonsList()">Back</button>
+</div>
+</div>
+<!-- Pedigree Tree -->
+<div class="hidden" id="pedigreeSection">
+<h2 style="color: #667eea; text-align: center; margin-bottom: 30px;">🌳 Pedigree Tree</h2>
+<div class="form-group" style="max-width: 400px; margin: 0 auto 30px;">
+<label>Select Pigeon:</label>
+<select id="pedigreeSelect" onchange="generatePedigreeTree()">
+<option value="">Choose a pigeon</option>
+</select>
+</div>
+<div class="pedigree-tree" id="pedigreeTree">
+<p style="text-align: center; color: var(--text-secondary);">Select a pigeon to view its pedigree tree</p>
+</div>
+<div style="text-align: center; margin-top: 20px;">
+<button class="btn btn-info" onclick="printPedigreeTree()">🖨️ Print Pedigree</button>
+<button class="btn btn-cancel" onclick="showPigeonsList()">Back to List</button>
+</div>
+</div>
+<!-- Export Options -->
+<div class="hidden" id="exportSection">
+<h2 style="color: #667eea; text-align: center; margin-bottom: 30px;">📄 Export Data</h2>
+<div class="export-options">
+<div class="export-option" onclick="selectExportOption('all')">
+<input id="exportAll" name="exportType" type="radio" value="all"/>
+<label for="exportAll">
+<strong>Export All Pigeons</strong><br/>
+<small>Complete database with all pigeons and race results</small>
+</label>
+</div>
+<div class="export-option" onclick="selectExportOption('single')">
+<input id="exportSingle" name="exportType" type="radio" value="single"/>
+<label for="exportSingle">
+<strong>Export Single Pigeon</strong><br/>
+<small>Detailed report for one pigeon including pedigree information</small>
+</label>
+</div>
+<div class="form-group" id="singlePigeonSelect" style="display: none; margin-top: 20px;">
+<label>Select Pigeon:</label>
+<select id="exportPigeonSelect">
+<option value="">Choose a pigeon</option>
+</select>
+</div>
+</div>
+<div style="text-align: center; margin-top: 30px;">
+<button class="btn btn-success" onclick="performExport()">📄 Generate PDF</button>
+<button class="btn btn-info" onclick="exportJSON()">💾 Export JSON</button>
+<button class="btn btn-cancel" onclick="showPigeonsList()">Back</button>
+</div>
+</div>
+<div class="hidden" id="pigeonsList">
+<div id="pigeonsContent">
+<div class="empty-state">
+                        No pigeons registered. Click "Add Pigeon" to start.
+                    </div>
+</div>
+</div>
+</div>
+<!-- Edit Modal -->
+<div class="modal" id="editModal">
+<div class="modal-content">
+<span class="close" onclick="closeEditModal()">✕</span>
+<h2>Edit Pigeon</h2>
+<div id="editFormContent">
+<!-- Edit form content will be populated here -->
+</div>
+</div>
+</div>
+</div>
+
+<script src="script.js"></script></body>
+</html>
