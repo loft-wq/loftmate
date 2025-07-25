@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0, user-scalable=yes" name="viewport"/>
+    <meta content="telephone=no" name="format-detection"/>
+    <title>Racing Pigeon Manager</title>
+    <meta content="Professional racing pigeon management system for breeders and enthusiasts" name="description"/>
+    <meta content="racing pigeons, pigeon breeding, pigeon management, homing pigeons" name="keywords"/>
+    <meta content="#667eea" name="theme-color"/>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, updateProfile } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        
+        // Firebase configuration - Replace with your config
+        const firebaseConfig = {
+            apiKey: "your-api-key",
+            authDomain: "your-project.firebaseapp.com",
+            projectId: "your-project-id",
+            storageBucket: "your-project.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "your-app-id"
+        };
+        
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        // Make Firebase services available globally
+        window.firebaseAuth = auth;
+        window.firebaseDb = db;
+        window.firebaseAuthFunctions = {
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged,
+            sendPasswordResetEmail,
+            updateProfile
+        };
+        window.firebaseDbFunctions = {
+            doc,
+            setDoc,
+            getDoc,
+            updateDoc,
+            collection,
+            query,
+            where,
+            getDocs
+        };
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --text-secondary: #666666;
+            --border-color: #f1f3f4;
+            --shadow: rgba(0,0,0,0.1);
+            --accent-color: #667eea;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --warning-color: #ffc107;
+        }
+
+        [data-theme="dark"] {
+            --primary-bg: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+            --card-bg: #2d3748;
+            --text-color: #ffffff;
+            --text-secondary: #cbd5e0;
+            --border-color: #4a5568;
+            --shadow: rgba(0,0,0,0.3);
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            background: var(--primary-bg);
+            margin: 0;
+            padding: 8px;
+            min-height: 100vh;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            touch-action: manipulation;
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 15px;
+            box-shadow: 0 15px 35px var(--shadow);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        [data-theme="dark"] .container {
+            background: rgba(45, 55, 72, 0.95);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .header {
+            text-align: center;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 25px 15px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: clamp(1.8rem, 5vw, 2.5rem);
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: clamp(0.9rem, 3vw, 1.1rem);
+            position: relative;
+            z-index: 1;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            z-index: 2;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
+        }
+
+        /* Authentication Forms */
+        .auth-container {
+            max-width: 450px;
+            margin: 20px auto;
+            padding: 35px 30px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .auth-header h2 {
+            color: var(--text-color);
+            font-size: clamp(1.5rem, 4vw, 2rem);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .auth-header p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-color);
+            font-size: 0.95rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 16px 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: var(--card-bg);
+            color: var(--text-color);
+        }
+
+        .form-group input:focus {
+            border-color: var(--accent-color);
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 6px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            display: inline-block;
+            position: relative;
+            overflow: hidden;
+            min-height: 48px;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            width: 100%;
+            text-align: center;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d, #495057);
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            box-shadow: 0 12px 25px rgba(108, 117, 125, 0.4);
+        }
+
+        .auth-links {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .auth-links a {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .auth-links a:hover {
+            color: #5a67d8;
+            text-decoration: underline;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 15px 0;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Loading States */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            max-width: 300px;
+            word-wrap: break-word;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .notification.success {
+            background: linear-gradient(135deg, #28a745, #20c997);
+        }
+
+        .notification.error {
+            background: linear-gradient(135deg, #dc3545, #fd7e14);
+        }
+
+        .notification.info {
+            background: linear-gradient(135deg, #17a2b8, #6f42c1);
+        }
+
+        /* Main App Styles (from original code) */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: var(--card-bg);
+            border-radius: 15px;
+            box-shadow: 0 4px 15px var(--shadow);
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(20px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+
+        @keyframes slideIn {
+            from { 
+                transform: translateX(100%); 
+                opacity: 0;
+            }
+            to { 
+                transform: translateX(0); 
+                opacity: 1;
+            }
+        }
+
+        /* User Info Bar */
+        .user-info {
+            background: var(--card-bg);
+            padding: 18px 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 6px 20px var(--shadow);
+            border: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+            }
+            
+            .container {
+                padding: 12px;
+                border-radius: 15px;
+                margin: 0;
+            }
+            
+            .auth-container {
+                padding: 25px 20px;
+                margin: 15px auto;
+                border-radius: 15px;
+            }
+            
+            .btn {
+                padding: 14px 20px;
+                font-size: 15px;
+                min-height: 44px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header fade-in">
+            <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">🌙</button>
+            <h1>Racing Pigeon Manager</h1>
+            <p>Professional breeding &amp; racing management system</p>
+        </div>
+
+        <!-- Login Form -->
+        <div class="fade-in" id="loginSection">
+            <div class="auth-container">
+                <div class="auth-header">
+                    <h2>Welcome Back</h2>
+                    <p>Sign in to your account to continue</p>
+                </div>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label>Email Address:</label>
+                        <input type="email" id="loginEmail" placeholder="Enter your email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password:</label>
+                        <input type="password" id="loginPassword" placeholder="Enter your password" required>
+                    </div>
+                    <button type="submit" class="btn" id="loginBtn">
+                        <span id="loginBtnText">Sign In</span>
+                    </button>
+                </form>
+                <div class="auth-links">
+                    <a href="#" onclick="showForgotPassword()">Forgot your password?</a>
+                    <div class="divider">Don't have an account?</div>
+                    <a href="#" onclick="showRegister()">Create new account</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Register Form -->
+        <div class="hidden" id="registerSection">
+            <div class="auth-container">
+                <div class="auth-header">
+                    <h2>Create Account</h2>
+                    <p>Join our pigeon breeding community</p>
+                </div>
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label>Full Name:</label>
+                        <input type="text" id="registerName" placeholder="Enter your full name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email Address:</label>
+                        <input type="email" id="registerEmail" placeholder="Enter your email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password:</label>
+                        <input type="password" id="registerPassword" placeholder="Create a password" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label>Confirm Password:</label>
+                        <input type="password" id="confirmPassword" placeholder="Confirm your password" required>
+                    </div>
+                    <button type="submit" class="btn" id="registerBtn">
+                        <span id="registerBtnText">Create Account</span>
+                    </button>
+                </form>
+                <div class="auth-links">
+                    <a href="#" onclick="showLogin()">Already have an account? Sign in</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Forgot Password Form -->
+        <div class="hidden" id="forgotPasswordSection">
+            <div class="auth-container">
+                <div class="auth-header">
+                    <h2>Reset Password</h2>
+                    <p>Enter your email to receive reset instructions</p>
+                </div>
+                <form id="forgotPasswordForm">
+                    <div class="form-group">
+                        <label>Email Address:</label>
+                        <input type="email" id="resetEmail" placeholder="Enter your email" required>
+                    </div>
+                    <button type="submit" class="btn" id="resetBtn">
+                        <span id="resetBtnText">Send Reset Link</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="showLogin()">
+                        Back to Sign In
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Main Application -->
+        <div class="hidden" id="mainApp">
+            <!-- User Info -->
+            <div class="user-info fade-in">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div class="user-avatar" id="userAvatar"></div>
+                    <div>
+                        <div>Welcome, <strong id="currentUserName"></strong></div>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary);" id="currentUserEmail"></div>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="logout()" style="width: auto; margin: 0;">Sign Out</button>
+            </div>
+
+            <!-- Statistics Bar -->
+            <div class="stats-bar fade-in">
+                <div class="stat-item">
+                    <span class="stat-number" id="totalCount">0</span>
+                    <div class="stat-label">Total Birds</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="maleCount">0</span>
+                    <div class="stat-label">Cocks</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="femaleCount">0</span>
+                    <div class="stat-label">Hens</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="youngCount">0</span>
+                    <div class="stat-label">Young Birds (2025)</div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="auth-container" style="text-align: center;">
+                <h3 style="color: var(--text-color); margin-bottom: 20px;">Welcome to your Pigeon Manager!</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                    Your data is now securely stored in the cloud and synced across all your devices.
+                </p>
+                <div class="btn" onclick="showNotification('Pigeon management features will be implemented here!', 'info')" style="width: auto;">
+                    🐦 Start Managing Your Pigeons
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentUser = null;
+        let userDoc = null;
+
+        // Wait for Firebase to load
+        function waitForFirebase() {
+            return new Promise((resolve) => {
+                const checkFirebase = () => {
+                    if (window.firebaseAuth && window.firebaseDb) {
+                        resolve();
+                    } else {
+                        setTimeout(checkFirebase, 100);
+                    }
+                };
+                checkFirebase();
+            });
+        }
+
+        // Initialize app
+        async function initializeApp() {
+            await waitForFirebase();
+            
+            // Set up auth state listener
+            window.firebaseAuthFunctions.onAuthStateChanged(window.firebaseAuth, (user) => {
+                if (user) {
+                    handleAuthSuccess(user);
+                } else {
+                    handleAuthLogout();
+                }
+            });
+        }
+
+        // Authentication Functions
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!email || !password) {
+                showNotification('Please fill in all fields', 'error');
+                return;
+            }
+            
+            setLoading('loginBtn', true);
+            
+            try {
+                const userCredential = await window.firebaseAuthFunctions.signInWithEmailAndPassword(
+                    window.firebaseAuth, email, password
+                );
+                showNotification('Successfully signed in!', 'success');
+            } catch (error) {
+                console.error('Login error:', error);
+                showNotification(getErrorMessage(error.code), 'error');
+            } finally {
+                setLoading('loginBtn', false);
+            }
+        }
+
+        async function handleRegister(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (!name || !email || !password || !confirmPassword) {
+                showNotification('Please fill in all fields', 'error');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showNotification('Passwords do not match', 'error');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showNotification('Password must be at least 6 characters', 'error');
+                return;
+            }
+            
+            setLoading('registerBtn', true);
+            
+            try {
+                const userCredential = await window.firebaseAuthFunctions.createUserWithEmailAndPassword(
+                    window.firebaseAuth, email, password
+                );
+                
+                // Update user profile
+                await window.firebaseAuthFunctions.updateProfile(userCredential.user, {
+                    displayName: name
+                });
+                
+                // Create user document in Firestore
+                await window.firebaseDbFunctions.setDoc(
+                    window.firebaseDbFunctions.doc(window.firebaseDb, 'users', userCredential.user.uid),
+                    {
+                        name: name,
+                        email: email,
+                        createdAt: new Date().toISOString(),
+                        pigeons: [],
+                        raceResults: []
+                    }
+                );
+                
+                showNotification('Account created successfully!', 'success');
+            } catch (error) {
+                console.error('Registration error:', error);
+                showNotification(getErrorMessage(error.code), 'error');
+            } finally {
+                setLoading('registerBtn', false);
+            }
+        }
+
+        async function handleForgotPassword(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('resetEmail').value;
+            
+            if (!email) {
+                showNotification('Please enter your email address', 'error');
+                return;
+            }
+            
+            setLoading('resetBtn', true);
+            
+            try {
+                await window.firebaseAuthFunctions.sendPasswordResetEmail(window.firebaseAuth, email);
+                showNotification('Password reset email sent! Check your inbox.', 'success');
+                showLogin();
+            } catch (error) {
+                console.error('Password reset error:', error);
+                showNotification(getErrorMessage(error.code), 'error');
+            } finally {
+                setLoading('resetBtn', false);
+            }
+        }
+
+        async function logout() {
+            try {
+                await window.firebaseAuthFunctions.signOut(window.firebaseAuth);
+                showNotification('Successfully signed out', 'info');
+            } catch (error) {
+                console.error('Logout error:', error);
+                showNotification('Error signing out', 'error');
+            }
+        }
+
+        // Auth State Handlers
+        async function handleAuthSuccess(user) {
+            currentUser = user;
+            
+            // Load user data from Firestore
+            try {
+                const docRef = window.firebaseDbFunctions.doc(window.firebaseDb, 'users', user.uid);
+                const docSnap = await window.firebaseDbFunctions.getDoc(docRef);
+                
+                if (docSnap.exists()) {
+                    userDoc = docSnap.data();
+                } else {
+                    // Create user document if it doesn't exist
+                    userDoc = {
+                        name: user.displayName || user.email.split('@')[0],
+                        email: user.email,
+                        createdAt: new Date().toISOString(),
+                        pigeons: [],
+                        raceResults: []
+                    };
+                    await window.firebaseDbFunctions.setDoc(docRef, userDoc);
+                }
+                
+                showMainApp();
+                updateUserInfo();
+                updateStatistics();
+                
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                showNotification('Error loading user data', 'error');
+            }
+        }
+
+        function handleAuthLogout() {
+            currentUser = null;
+            userDoc = null;
+            showLogin();
+        }
+
+        // UI Functions
+        function showLogin() {
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('registerSection').classList.add('hidden');
+            document.getElementById('forgotPasswordSection').classList.add('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+            clearForms();
+        }
+
+        function showRegister() {
+            document.getElementById('registerSection').classList.remove('hidden');
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('forgotPasswordSection').classList.add('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+            clearForms();
+        }
+
+        function showForgotPassword() {
+            document.getElementById('forgotPasswordSection').classList.remove('hidden');
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('registerSection').classList.add('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+            clearForms();
+        }
+
+        function showMainApp() {
+            document.getElementById('mainApp').classList.remove('hidden');
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('registerSection').classList.add('hidden');
+            document.getElementById('forgotPasswordSection').classList.add('hidden');
+        }
+
+        function updateUserInfo() {
+            if (!currentUser || !userDoc) return;
+            
+            const userName = userDoc.name || currentUser.displayName || currentUser.email.split('@')[0];
+            const userEmail = currentUser.email;
+            
+            document.getElementById('currentUserName').textContent = userName;
+            document.getElementById('currentUserEmail').textContent = userEmail;
+            document.getElementById('userAvatar').textContent = userName.charAt(0).toUpperCase();
+        }
+
+        function updateStatistics() {
+            if (!userDoc) return;
+            
+            const pigeons = userDoc.pigeons || [];
+            const total = pigeons.length;
+            const males = pigeons.filter(p => p.gender === 'Cock').length;
+            const females = pigeons.filter(p => p.gender === 'Hen').length;
+            const young = pigeons.filter(p => p.year === new Date().getFullYear()).length;
+
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('maleCount').textContent = males;
+            document.getElementById('femaleCount').textContent = females;
+            document.getElementById('youngCount').textContent = young;
+        }
+
+        function clearForms() {
+            document.querySelectorAll('form').forEach(form => form.reset());
+        }
+
+        function setLoading(buttonId, loading) {
+            const button = document.getElementById(buttonId);
+            const text = document.getElementById(buttonId.replace('Btn', 'BtnText'));
+            
+            if (loading) {
+                button.disabled = true;
+                text.innerHTML = '<span class="loading"></span>Processing...';
+            } else {
+                button.disabled = false;
+                const originalTexts = {
+                    'loginBtn': 'Sign In',
+                    'registerBtn': 'Create Account',
+                    'resetBtn': 'Send Reset Link'
+                };
+                text.textContent = originalTexts[buttonId] || 'Submit';
+            }
+        }
+
+        function getErrorMessage(errorCode) {
+            const errorMessages = {
+                'auth/user-not-found': 'No account found with this email address.',
+                'auth/wrong-password': 'Incorrect password.',
+                'auth/email-already-in-use': 'An account already exists with this email address.',
+                'auth/weak-password': 'Password should be at least 6 characters.',
+                'auth/invalid-email': 'Please enter a valid email address.',
+                'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
+                'auth/user-disabled': 'This account has been disabled.',
+                'auth/operation-not-allowed': 'This operation is not allowed.',
+                'auth/invalid-credential': 'Invalid login credentials.',
+                'auth/network-request-failed': 'Network error. Please check your connection.'
+            };
+            return errorMessages[errorCode] || 'An unexpected error occurred. Please try again.';
+        }
+
+        function showNotification(message, type = 'info') {
+            // Remove existing notifications
+            document.querySelectorAll('.notification').forEach(n => n.remove());
+            
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'fadeOut 0.3s ease';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 4000);
+        }
+
+        function toggleTheme() {
+            const body = document.body;
+            const themeToggle = document.querySelector('.theme-toggle');
+            
+            if (body.getAttribute('data-theme') === 'dark') {
+                body.removeAttribute('data-theme');
+                themeToggle.textContent = '🌙';
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.setAttribute('data-theme', 'dark');
+                themeToggle.textContent = '☀️';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // User Data Management Functions
+        async function saveUserData() {
+            if (!currentUser || !userDoc) return;
+            
+            try {
+                const docRef = window.firebaseDbFunctions.doc(window.firebaseDb, 'users', currentUser.uid);
+                await window.firebaseDbFunctions.updateDoc(docRef, {
+                    ...userDoc,
+                    lastUpdated: new Date().toISOString()
+                });
+                return true;
+            } catch (error) {
+                console.error('Error saving user data:', error);
+                showNotification('Error saving data', 'error');
+                return false;
+            }
+        }
+
+        async function loadUserData() {
+            if (!currentUser) return false;
+            
+            try {
+                const docRef = window.firebaseDbFunctions.doc(window.firebaseDb, 'users', currentUser.uid);
+                const docSnap = await window.firebaseDbFunctions.getDoc(docRef);
+                
+                if (docSnap.exists()) {
+                    userDoc = docSnap.data();
+                    updateStatistics();
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                showNotification('Error loading data', 'error');
+                return false;
+            }
+        }
+
+        // Route Protection
+        function requireAuth() {
+            if (!currentUser) {
+                showNotification('Please sign in to access this feature', 'error');
+                showLogin();
+                return false;
+            }
+            return true;
+        }
+
+        // Sample functions for pigeon management (integrate with your existing code)
+        async function addPigeon(pigeonData) {
+            if (!requireAuth()) return false;
+            
+            try {
+                const newPigeon = {
+                    ...pigeonData,
+                    id: generateId(),
+                    userId: currentUser.uid,
+                    addedDate: new Date().toISOString()
+                };
+                
+                userDoc.pigeons = userDoc.pigeons || [];
+                userDoc.pigeons.push(newPigeon);
+                
+                await saveUserData();
+                updateStatistics();
+                showNotification('Pigeon added successfully!', 'success');
+                return true;
+            } catch (error) {
+                console.error('Error adding pigeon:', error);
+                showNotification('Error adding pigeon', 'error');
+                return false;
+            }
+        }
+
+        async function updatePigeon(pigeonId, pigeonData) {
+            if (!requireAuth()) return false;
+            
+            try {
+                const index = userDoc.pigeons.findIndex(p => p.id === pigeonId);
+                if (index === -1) {
+                    showNotification('Pigeon not found', 'error');
+                    return false;
+                }
+                
+                userDoc.pigeons[index] = {
+                    ...userDoc.pigeons[index],
+                    ...pigeonData,
+                    updatedDate: new Date().toISOString()
+                };
+                
+                await saveUserData();
+                updateStatistics();
+                showNotification('Pigeon updated successfully!', 'success');
+                return true;
+            } catch (error) {
+                console.error('Error updating pigeon:', error);
+                showNotification('Error updating pigeon', 'error');
+                return false;
+            }
+        }
+
+        async function deletePigeon(pigeonId) {
+            if (!requireAuth()) return false;
+            
+            try {
+                userDoc.pigeons = userDoc.pigeons.filter(p => p.id !== pigeonId);
+                userDoc.raceResults = userDoc.raceResults.filter(r => r.pigeonId !== pigeonId);
+                
+                await saveUserData();
+                updateStatistics();
+                showNotification('Pigeon deleted successfully', 'info');
+                return true;
+            } catch (error) {
+                console.error('Error deleting pigeon:', error);
+                showNotification('Error deleting pigeon', 'error');
+                return false;
+            }
+        }
+
+        async function addRaceResult(raceData) {
+            if (!requireAuth()) return false;
+            
+            try {
+                const newRaceResult = {
+                    ...raceData,
+                    id: generateId(),
+                    userId: currentUser.uid,
+                    addedDate: new Date().toISOString()
+                };
+                
+                userDoc.raceResults = userDoc.raceResults || [];
+                userDoc.raceResults.push(newRaceResult);
+                
+                await saveUserData();
+                showNotification('Race result added successfully!', 'success');
+                return true;
+            } catch (error) {
+                console.error('Error adding race result:', error);
+                showNotification('Error adding race result', 'error');
+                return false;
+            }
+        }
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        // Export/Import functions with Firebase integration
+        async function exportUserData() {
+            if (!requireAuth()) return;
+            
+            try {
+                const exportData = {
+                    user: {
+                        name: userDoc.name,
+                        email: currentUser.email,
+                        uid: currentUser.uid
+                    },
+                    pigeons: userDoc.pigeons || [],
+                    raceResults: userDoc.raceResults || [],
+                    exportDate: new Date().toISOString(),
+                    version: '5.0'
+                };
+                
+                const dataStr = JSON.stringify(exportData, null, 2);
+                const element = document.createElement('a');
+                element.setAttribute('href', 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr));
+                element.setAttribute('download', `pigeon_data_${currentUser.uid}_${new Date().toISOString().split('T')[0]}.json`);
+                element.style.display = 'none';
+                document.body.appendChild(element);
+                element.click();
+                document.body.removeChild(element);
+                
+                showNotification('Data exported successfully!', 'success');
+            } catch (error) {
+                console.error('Error exporting data:', error);
+                showNotification('Error exporting data', 'error');
+            }
+        }
+
+        async function importUserData(file) {
+            if (!requireAuth()) return;
+            
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+                
+                if (!data.pigeons || !Array.isArray(data.pigeons)) {
+                    showNotification('Invalid file format', 'error');
+                    return;
+                }
+                
+                if (confirm('This will replace all your current data. Are you sure?')) {
+                    userDoc.pigeons = data.pigeons.map(pigeon => ({
+                        ...pigeon,
+                        userId: currentUser.uid,
+                        importedDate: new Date().toISOString()
+                    }));
+                    
+                    userDoc.raceResults = data.raceResults ? data.raceResults.map(result => ({
+                        ...result,
+                        userId: currentUser.uid,
+                        importedDate: new Date().toISOString()
+                    })) : [];
+                    
+                    await saveUserData();
+                    updateStatistics();
+                    showNotification(`Successfully imported ${data.pigeons.length} pigeons!`, 'success');
+                }
+            } catch (error) {
+                console.error('Error importing data:', error);
+                showNotification('Error importing data. Please check the file format.', 'error');
+            }
+        }
+
+        // Auto-save functionality
+        function startAutoSave() {
+            setInterval(async () => {
+                if (currentUser && userDoc) {
+                    await saveUserData();
+                    console.log('Auto-save completed');
+                }
+            }, 300000); // Save every 5 minutes
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set theme
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.body.setAttribute('data-theme', 'dark');
+                document.querySelector('.theme-toggle').textContent = '☀️';
+            }
+            
+            // Initialize Firebase and app
+            initializeApp();
+            
+            // Form event listeners
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+            document.getElementById('registerForm').addEventListener('submit', handleRegister);
+            document.getElementById('forgotPasswordForm').addEventListener('submit', handleForgotPassword);
+            
+            // Start auto-save
+            startAutoSave();
+            
+            // Handle browser refresh/close
+            window.addEventListener('beforeunload', () => {
+                if (currentUser && userDoc) {
+                    saveUserData();
+                }
+            });
+            
+            // Handle online/offline status
+            window.addEventListener('online', () => {
+                showNotification('Connection restored. Data will sync automatically.', 'success');
+                if (currentUser && userDoc) {
+                    saveUserData();
+                }
+            });
+            
+            window.addEventListener('offline', () => {
+                showNotification('You are offline. Changes will sync when connection is restored.', 'info');
+            });
+        });
+
+        // Additional CSS for fadeOut animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeOut {
+                from { 
+                    opacity: 1; 
+                    transform: translateX(0); 
+                }
+                to { 
+                    opacity: 0; 
+                    transform: translateX(100%); 
+                }
+            }
+            .notification {
+                animation: slideIn 0.3s ease;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Console logging for development
+        console.log('🐦 Racing Pigeon Manager with Firebase Authentication is ready!');
+        console.log('🔐 Secure user authentication and data storage enabled');
+        console.log('☁️ Real-time data synchronization across devices');
+    </script>
+</body>
+</html>
