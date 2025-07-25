@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0, user-scalable=yes" name="viewport"/>
+    <meta content="telephone=no" name="format-detection"/>
+    <title>Racing Pigeon Manager</title>
+    <meta content="Professional racing pigeon management system for breeders and enthusiasts" name="description"/>
+    <meta content="racing pigeons, pigeon breeding, pigeon management, homing pigeons" name="keywords"/>
+    <meta content="#667eea" name="theme-color"/>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="assets/icons/favicon.ico">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <!-- Firebase SDK -->
+    <script type="module" src="js/firebase-config.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header fade-in">
+            <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">🌙</button>
+            <h1>Racing Pigeon Manager</h1>
+            <p>Professional breeding &amp; racing management system</p>
+        </div>
+
+        <!-- Login Form -->
+        <div class="fade-in" id="loginSection">
+            <div class="auth-container">
+                <div class="auth-header">
+                    <h2>Welcome Back</h2>
+                    <p>Sign in to your account to continue</p>
+                </div>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label>Email Address:</label>
+                        <input type="email" id="loginEmail" placeholder="Enter your email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password:</label>
+                        <input type="password" id="loginPassword" placeholder="Enter your password" required>
+                    </div>
+                    <button type="submit" class="btn" id="loginBtn">
+                        <span id="loginBtnText">Sign In</span>
+                    </button>
+                </form>
+                <div class="auth-links">
+                    <a href="#" onclick="showForgotPassword()">Forgot your password?</a>
+                    <div class="divider">Don't have an account?</div>
+                    <a href="#" onclick="showRegister()">Create new account</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Register Form -->
+        <div class="hidden" id="registerSection">
+            <div class="auth-container">
+                <div class="auth-header">
+                    <h2>Create Account</h2>
+                    <p>Join our pigeon breeding community</p>
+                </div>
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label>Full Name:</label>
+                        <input type="text" id="registerName" placeholder="Enter your full name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email Address:</label>
+                        <input type="email" id="registerEmail" placeholder="Enter your email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password:</label>
+                        <input type="password" id="registerPassword" placeholder="Create a password" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label>Confirm Password:</label>
+                        <input type="password" id="confirmPassword" placeholder="Confirm your password" required>
+                    </div>
+                    <button type="submit" class="btn" id="registerBtn">
+                        <span id="registerBtnText">Create Account</span>
+                    </button>
+                </form>
+                <div class="auth-links">
+                    <a href="#" onclick="showLogin()">Already have an account? Sign in</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Forgot Password Form -->
+        <div class="hidden" id="forgotPasswordSection">
+            <div class="auth-container">
+                <div class="auth-header">
+                    <h2>Reset Password</h2>
+                    <p>Enter your email to receive reset instructions</p>
+                </div>
+                <form id="forgotPasswordForm">
+                    <div class="form-group">
+                        <label>Email Address:</label>
+                        <input type="email" id="resetEmail" placeholder="Enter your email" required>
+                    </div>
+                    <button type="submit" class="btn" id="resetBtn">
+                        <span id="resetBtnText">Send Reset Link</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="showLogin()">
+                        Back to Sign In
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Main Application -->
+        <div class="hidden" id="mainApp">
+            <!-- User Info -->
+            <div class="user-info fade-in">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div class="user-avatar" id="userAvatar"></div>
+                    <div>
+                        <div>Welcome, <strong id="currentUserName"></strong></div>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary);" id="currentUserEmail"></div>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="logout()" style="width: auto; margin: 0;">Sign Out</button>
+            </div>
+
+            <!-- Statistics Bar -->
+            <div class="stats-bar fade-in">
+                <div class="stat-item">
+                    <span class="stat-number" id="totalCount">0</span>
+                    <div class="stat-label">Total Birds</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="maleCount">0</span>
+                    <div class="stat-label">Cocks</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="femaleCount">0</span>
+                    <div class="stat-label">Hens</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="youngCount">0</span>
+                    <div class="stat-label">Young Birds (2025)</div>
+                </div>
+            </div>
+
+            <!-- Navigation Menu -->
+            <div class="menu-container fade-in">
+                <button class="menu-btn" onclick="showPigeonsList()">
+                    🐦 View All Pigeons
+                </button>
+                <button class="menu-btn" onclick="showAddForm()">
+                    ➕ Add New Pigeon
+                </button>
+                <button class="menu-btn" onclick="showRaceManager()">
+                    🏆 Race Results
+                </button>
+                <button class="menu-btn" onclick="showPedigreeTree()">
+                    🌳 Pedigree Tree
+                </button>
+                <button class="menu-btn" onclick="showExportOptions()">
+                    📊 Export Data
+                </button>
+            </div>
+
+            <!-- Pigeons List Section -->
+            <div class="hidden fade-in" id="pigeonsList">
+                <div class="section-header">
+                    <h2>🐦 Pigeon Collection</h2>
+                    <div class="search-filters">
+                        <input type="text" id="searchInput" placeholder="Search by name or ring number..." onkeyup="filterPigeons()">
+                        <select id="countryFilter" onchange="filterPigeons()">
+                            <option value="">All Countries</option>
+                        </select>
+                        <select id="strainFilter" onchange="filterPigeons()">
+                            <option value="">All Strains</option>
+                        </select>
+                        <select id="colorFilter" onchange="filterPigeons()">
+                            <option value="">All Colors</option>
+                        </select>
+                        <button class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>
+                    </div>
+                </div>
+                <div id="pigeonsContent" class="pigeons-grid"></div>
+            </div>
+
+            <!-- Add/Edit Pigeon Form -->
+            <div class="hidden fade-in" id="addForm">
+                <div class="form-container">
+                    <h2 id="formTitle">Add New Pigeon</h2>
+                    <form onsubmit="event.preventDefault(); savePigeon();">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Ring Number *:</label>
+                                <input type="text" id="ringNumber" placeholder="e.g., 25-01741" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Country *:</label>
+                                <select id="country" required>
+                                    <option value="">Select Country</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Club Code:</label>
+                                <input type="text" id="clubCode" placeholder="e.g., FR123">
+                            </div>
+                            <div class="form-group">
+                                <label>Pigeon Name:</label>
+                                <input type="text" id="pigeonName" placeholder="Enter name">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Ring Color:</label>
+                                <select id="ringColor">
+                                    <option value="">Select Color</option>
+                                    <option value="Red">Red</option>
+                                    <option value="Blue">Blue</option>
+                                    <option value="Yellow">Yellow</option>
+                                    <option value="Green">Green</option>
+                                    <option value="White">White</option>
+                                    <option value="Black">Black</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Pigeon Color:</label>
+                                <select id="pigeonColor">
+                                    <option value="">Select Color</option>
+                                    <option value="Blue Bar">Blue Bar</option>
+                                    <option value="Red Check">Red Check</option>
+                                    <option value="Dark Check">Dark Check</option>
+                                    <option value="Checker">Checker</option>
+                                    <option value="Grizzle">Grizzle</option>
+                                    <option value="White">White</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Strain:</label>
+                                <select id="strain" onchange="handleStrainChange()">
+                                    <option value="">Select Strain</option>
+                                    <option value="Janssen">Janssen</option>
+                                    <option value="Gaby Vandenabeele">Gaby Vandenabeele</option>
+                                    <option value="Van Reet">Van Reet</option>
+                                    <option value="Sion">Sion</option>
+                                    <option value="Deweerd">Deweerd</option>
+                                    <option value="Other">Other (specify)</option>
+                                </select>
+                                <div id="customStrainInput" class="custom-input">
+                                    <input type="text" id="customStrain" placeholder="Enter custom strain">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Gender:</label>
+                                <select id="gender">
+                                    <option value="">Select Gender</option>
+                                    <option value="Cock">Cock</option>
+                                    <option value="Hen">Hen</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Father Ring:</label>
+                                <input type="text" id="fatherRing" placeholder="Father's ring number">
+                            </div>
+                            <div class="form-group">
+                                <label>Mother Ring:</label>
+                                <input type="text" id="motherRing" placeholder="Mother's ring number">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Original Breeder:</label>
+                            <input type="text" id="owner" placeholder="Enter breeder name">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Notes:</label>
+                            <textarea id="notes" placeholder="Enter any additional notes..." rows="3"></textarea>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn">
+                                <span id="saveButtonText">Save Pigeon</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="showPigeonsList()">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Race Manager Section -->
+            <div class="hidden fade-in" id="raceManager">
+                <div class="form-container">
+                    <h2>🏆 Race Results Manager</h2>
+                    <form onsubmit="event.preventDefault(); addRaceResult();">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Race Name *:</label>
+                                <input type="text" id="raceName" placeholder="Enter race name" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Race Date *:</label>
+                                <input type="date" id="raceDate" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Distance (km):</label>
+                                <input type="number" id="raceDistance" placeholder="Distance in kilometers">
+                            </div>
+                            <div class="form-group">
+                                <label>Participant *:</label>
+                                <select id="raceParticipant" required>
+                                    <option value="">Select Pigeon</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Position *:</label>
+                                <input type="number" id="racePosition" placeholder="Final position" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Speed (m/min):</label>
+                                <input type="number" id="raceSpeed" placeholder="Speed in meters per minute">
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn">Add Race Result</button>
+                            <button type="button" class="btn btn-secondary" onclick="showPigeonsList()">
+                                Back to List
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Pedigree Section -->
+            <div class="hidden fade-in" id="pedigreeSection">
+                <div class="form-container">
+                    <h2>🌳 Pedigree Tree</h2>
+                    <div class="form-group">
+                        <label>Select Pigeon:</label>
+                        <select id="pedigreeSelect">
+                            <option value="">Choose a pigeon</option>
+                        </select>
+                    </div>
+                    <div id="pedigreeTree" class="pedigree-display">
+                        <p>Select a pigeon to view its pedigree tree</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="showPigeonsList()">
+                        Back to List
+                    </button>
+                </div>
+            </div>
+
+            <!-- Export Section -->
+            <div class="hidden fade-in" id="exportSection">
+                <div class="form-container">
+                    <h2>📊 Export & Import Data</h2>
+                    
+                    <div class="export-options">
+                        <h3>Export Options</h3>
+                        <button class="btn" onclick="exportJSON()">
+                            📄 Export as JSON
+                        </button>
+                        <button class="btn" onclick="showNotification('PDF export coming soon!', 'info')">
+                            📑 Export as PDF (Coming Soon)
+                        </button>
+                    </div>
+
+                    <div class="import-options">
+                        <h3>Import Data</h3>
+                        <input type="file" id="importFile" accept=".json" onchange="importData(event)" style="display: none;">
+                        <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">
+                            📥 Import JSON File
+                        </button>
+                    </div>
+
+                    <div class="data-management">
+                        <h3>Data Management</h3>
+                        <button class="btn btn-danger" onclick="clearAllData()">
+                            🗑️ Clear All Data
+                        </button>
+                    </div>
+
+                    <button class="btn btn-secondary" onclick="showPigeonsList()">
+                        Back to List
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/pigeon-manager.js"></script>
+</body>
+</html>
