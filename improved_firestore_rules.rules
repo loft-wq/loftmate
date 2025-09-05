@@ -1,0 +1,181 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ---------- Helper Functions ----------
+    function isSignedIn() { 
+      return request.auth != null; 
+    }
+    
+    function uid() { 
+      return request.auth.uid; 
+    }
+    
+    function userEmail() {
+      return request.auth.token.email;
+    }
+    
+    // Admin emails - عدّل هذه الإيميلات حسب حساباتك
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.admin == true ||
+        request.auth.token.role == "admin" ||
+        userEmail() in [
+          "m123.mm17@gmail.com",
+          "loftifejimi@gmail.com",
+          "admin@gmail.com"
+        ]
+      );
+    }
+    
+    // تحقق الملكية للمستندات الموجودة
+    function isOwnerExisting() {
+      return isSignedIn() && 
+             resource != null && 
+             resource.data.userId == uid();
+    }
+    
+    // تحقق الملكية للمستندات الجديدة
+    function isOwnerCreate() {
+      return isSignedIn() && 
+             request.resource.data.userId == uid();
+    }
+    
+    // تحقق صحة البيانات المطلوبة (محسنة)
+    function hasValidUserData() {
+      return request.resource.data.userId == uid() &&
+             request.resource.data.userId is string &&
+             request.resource.data.userId.size() > 0;
+    }
+    
+    // منع تغيير userId بعد الإنشاء
+    function userIdNotChanged() {
+      return resource == null || 
+             resource.data.userId == request.resource.data.userId;
+    }
+    
+    // تحقق من صحة البيانات المطلوبة للمستخدمين
+    function hasValidUserFields() {
+      return request.resource.data.keys().hasAll(['email', 'displayName']) &&
+             request.resource.data.email == userEmail() &&
+             request.resource.data.email is string &&
+             request.resource.data.displayName is string;
+    }
+
+    // ---------- Users Collection ----------
+    // كل مستخدم يمكنه إنشاء وتعديل ملفه الشخصي فقط
+    match /users/{userId} {
+      allow read: if isAdmin() || (isSignedIn() && userId == uid());
+      allow create: if isSignedIn() && 
+                       userId == uid() && 
+                       hasValidUserFields();
+      allow update: if isAdmin() || 
+                       (isSignedIn() && 
+                        userId == uid() && 
+                        userIdNotChanged() &&
+                        request.resource.data.email == userEmail());
+      allow delete: if isAdmin();
+      
+      // المجموعات الفرعية تحت المستخدم
+      match /{subpath=**} {
+        allow read, write: if isAdmin() || (isSignedIn() && userId == uid());
+      }
+    }
+
+    // ---------- Pigeons Collection ----------
+    // كل حمامة مرتبطة بمستخدم واحد فقط
+    match /pigeons/{pigeonId} {
+      allow read: if isAdmin() || isOwnerExisting();
+      allow create: if isAdmin() || (isOwnerCreate() && hasValidUserData() && userIdNotChanged());
+      allow update: if isAdmin() || (isOwnerExisting() && userIdNotChanged());
+      allow delete: if isAdmin() || isOwnerExisting();
+    }
+
+    // ---------- Races Collection ----------
+    // كل سباق مرتبط بمستخدم واحد فقط
+    match /races/{raceId} {
+      allow read: if isAdmin() || isOwnerExisting();
+      allow create: if isAdmin() || (isOwnerCreate() && hasValidUserData() && userIdNotChanged());
+      allow update: if isAdmin() || (isOwnerExisting() && userIdNotChanged());
+      allow delete: if isAdmin() || isOwnerExisting();
+    }
+
+    // ---------- Race Setups Collection ----------
+    // إعدادات السباقات لكل مستخدم
+    match /raceSetups/{setupId} {
+      allow read: if isAdmin() || isOwnerExisting();
+      allow create: if isAdmin() || (isOwnerCreate() && hasValidUserData() && userIdNotChanged());
+      allow update: if isAdmin() || (isOwnerExisting() && userIdNotChanged());
+      allow delete: if isAdmin() || isOwnerExisting();
+    }
+
+    // ---------- Breeding Collection ----------
+    // سجلات التزاوج لكل مستخدم
+    match /breeding/{breedingId} {
+      allow read: if isAdmin() || isOwnerExisting();
+      allow create: if isAdmin() || (isOwnerCreate() && hasValidUserData() && userIdNotChanged());
+      allow update: if isAdmin() || (isOwnerExisting() && userIdNotChanged());
+      allow delete: if isAdmin() || isOwnerExisting();
+    }
+
+    // ---------- Training Collection ----------
+    // سجلات التدريب لكل مستخدم
+    match /training/{trainingId} {
+      allow read: if isAdmin() || isOwnerExisting();
+      allow create: if isAdmin() || (isOwnerCreate() && hasValidUserData() && userIdNotChanged());
+      allow update: if isAdmin() || (isOwnerExisting() && userIdNotChanged());
+      allow delete: if isAdmin() || isOwnerExisting();
+    }
+
+    // ---------- Results Collection ----------
+    // نتائج السباقات لكل مستخدم
+    match /results/{resultId} {
+      allow read: if isAdmin() || isOwnerExisting();
+      allow create: if isAdmin() || (isOwnerCreate() && hasValidUserData() && userIdNotChanged());
+      allow update: if isAdmin() || (isOwnerExisting() && userIdNotChanged());
+      allow delete: if isAdmin() || isOwnerExisting();
+    }
+
+    // ---------- Attachments Collection ----------
+    // المرفقات والصور لكل مستخدم
+    match /attachments/{attachmentId} {
+      allow read: if isAdmin() || isOwnerExisting();
+      allow create: if isAdmin() || (isOwnerCreate() && hasValidUserData() && userIdNotChanged());
+      allow update: if isAdmin() || (isOwnerExisting() && userIdNotChanged());
+      allow delete: if isAdmin() || isOwnerExisting();
+    }
+
+    // ---------- Admin Collections ----------
+    // مجموعات خاصة بالأدمن فقط
+    match /admin_settings/{id} {
+      allow read, write: if isAdmin();
+    }
+    
+    match /admin_logs/{id} {
+      allow read, write: if isAdmin();
+    }
+    
+    match /admin_reports/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    // ---------- Public Broadcasts ----------
+    // رسائل عامة يكتبها الأدمن ويقرأها الجميع
+    match /broadcasts/{broadcastId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ---------- System Collections ----------
+    // مجموعات النظام للإحصائيات والتقارير
+    match /system_stats/{id} {
+      allow read: if isAdmin();
+      allow write: if false; // يتم التحديث عبر Cloud Functions فقط
+    }
+
+    // ---------- منع الوصول لأي مسار غير محدد ----------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
