@@ -15,15 +15,32 @@
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, updateProfile } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         
-        // Firebase configuration - Replace with your config
+        // Firebase configuration - Replace with your actual config
         const firebaseConfig = {
-            apiKey: "your-api-key",
-            authDomain: "your-project.firebaseapp.com",
-            projectId: "your-project-id",
-            storageBucket: "your-project.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "your-app-id"
+            apiKey: "your-api-key", // Replace with your actual API key
+            authDomain: "your-project.firebaseapp.com", // Replace with your actual domain
+            projectId: "your-project-id", // Replace with your actual project ID
+            storageBucket: "your-project.appspot.com", // Replace with your actual storage bucket
+            messagingSenderId: "123456789", // Replace with your actual sender ID
+            appId: "your-app-id" // Replace with your actual app ID
         };
+        
+        // Check if Firebase config is properly set
+        function validateFirebaseConfig() {
+            const requiredFields = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
+            const missingFields = requiredFields.filter(field => 
+                !firebaseConfig[field] || 
+                firebaseConfig[field].includes('your-') || 
+                firebaseConfig[field] === '123456789'
+            );
+            
+            if (missingFields.length > 0) {
+                console.error('❌ Firebase configuration is incomplete! Missing or invalid fields:', missingFields);
+                showNotification('Firebase configuration error. Please check console for details.', 'error');
+                return false;
+            }
+            return true;
+        }
         
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
@@ -623,6 +640,20 @@
         async function initializeApp() {
             await waitForFirebase();
             
+            // Validate Firebase configuration
+            if (!validateFirebaseConfig()) {
+                return;
+            }
+            
+            // Test Firestore connection
+            try {
+                await testFirestoreConnection();
+            } catch (error) {
+                console.error('❌ Firestore connection test failed:', error);
+                showNotification('Cannot connect to Firestore. Please check your configuration.', 'error');
+                return;
+            }
+            
             // Set up auth state listener
             window.firebaseAuthFunctions.onAuthStateChanged(window.firebaseAuth, (user) => {
                 if (user) {
@@ -631,6 +662,20 @@
                     handleAuthLogout();
                 }
             });
+        }
+        
+        // Test Firestore connection
+        async function testFirestoreConnection() {
+            try {
+                // Try to read from a test collection
+                const testDoc = window.firebaseDbFunctions.doc(window.firebaseDb, 'test', 'connection');
+                await window.firebaseDbFunctions.getDoc(testDoc);
+                console.log('✅ Firestore connection successful');
+                return true;
+            } catch (error) {
+                console.error('❌ Firestore connection failed:', error);
+                throw error;
+            }
         }
 
         // Authentication Functions
@@ -922,20 +967,76 @@
 
         // User Data Management Functions
         async function saveUserData() {
-            if (!currentUser || !userDoc) return;
-            
-            try {
-                const docRef = window.firebaseDbFunctions.doc(window.firebaseDb, 'users', currentUser.uid);
-                await window.firebaseDbFunctions.updateDoc(docRef, {
-                    ...userDoc,
-                    lastUpdated: new Date().toISOString()
-                });
-                return true;
-            } catch (error) {
-                console.error('Error saving user data:', error);
-                showNotification('Error saving data', 'error');
+            if (!currentUser || !userDoc) {
+                console.warn('⚠️ Cannot save: No user or userDoc available');
                 return false;
             }
+            
+            try {
+                console.log('💾 Attempting to save user data...');
+                
+                // Validate data before saving
+                if (!validateUserData(userDoc)) {
+                    showNotification('Invalid data format. Cannot save.', 'error');
+                    return false;
+                }
+                
+                const docRef = window.firebaseDbFunctions.doc(window.firebaseDb, 'users', currentUser.uid);
+                const dataToSave = {
+                    ...userDoc,
+                    lastUpdated: new Date().toISOString(),
+                    version: '5.0'
+                };
+                
+                await window.firebaseDbFunctions.updateDoc(docRef, dataToSave);
+                console.log('✅ User data saved successfully');
+                return true;
+            } catch (error) {
+                console.error('❌ Error saving user data:', error);
+                
+                // Provide specific error messages
+                if (error.code === 'permission-denied') {
+                    showNotification('Permission denied. Please check Firestore rules.', 'error');
+                } else if (error.code === 'unavailable') {
+                    showNotification('Firestore is unavailable. Data will sync when connection is restored.', 'error');
+                } else if (error.code === 'unauthenticated') {
+                    showNotification('Authentication required. Please sign in again.', 'error');
+                } else {
+                    showNotification(`Error saving data: ${error.message}`, 'error');
+                }
+                return false;
+            }
+        }
+        
+        // Validate user data before saving
+        function validateUserData(data) {
+            if (!data || typeof data !== 'object') {
+                console.error('❌ Invalid data: Not an object');
+                return false;
+            }
+            
+            if (!data.name || typeof data.name !== 'string') {
+                console.error('❌ Invalid data: Missing or invalid name');
+                return false;
+            }
+            
+            if (!data.email || typeof data.email !== 'string') {
+                console.error('❌ Invalid data: Missing or invalid email');
+                return false;
+            }
+            
+            if (!Array.isArray(data.pigeons)) {
+                console.error('❌ Invalid data: pigeons must be an array');
+                return false;
+            }
+            
+            if (!Array.isArray(data.raceResults)) {
+                console.error('❌ Invalid data: raceResults must be an array');
+                return false;
+            }
+            
+            console.log('✅ Data validation passed');
+            return true;
         }
 
         async function loadUserData() {
@@ -1204,10 +1305,52 @@
         `;
         document.head.appendChild(style);
 
+        // Diagnostic functions
+        async function runDiagnostics() {
+            console.log('🔍 Running Firebase diagnostics...');
+            
+            // Check Firebase config
+            const configValid = validateFirebaseConfig();
+            console.log('📋 Firebase Config:', configValid ? '✅ Valid' : '❌ Invalid');
+            
+            // Check Firestore connection
+            try {
+                await testFirestoreConnection();
+                console.log('🔗 Firestore Connection: ✅ Connected');
+            } catch (error) {
+                console.log('🔗 Firestore Connection: ❌ Failed');
+                console.error('Connection error:', error);
+            }
+            
+            // Check authentication
+            if (currentUser) {
+                console.log('👤 Authentication: ✅ User signed in');
+                console.log('User ID:', currentUser.uid);
+                console.log('User Email:', currentUser.email);
+            } else {
+                console.log('👤 Authentication: ⚠️ No user signed in');
+            }
+            
+            // Check user document
+            if (userDoc) {
+                console.log('📄 User Document: ✅ Loaded');
+                console.log('Pigeons count:', userDoc.pigeons ? userDoc.pigeons.length : 0);
+                console.log('Race results count:', userDoc.raceResults ? userDoc.raceResults.length : 0);
+            } else {
+                console.log('📄 User Document: ⚠️ Not loaded');
+            }
+            
+            console.log('🔍 Diagnostics completed');
+        }
+        
+        // Make diagnostics available globally
+        window.runDiagnostics = runDiagnostics;
+
         // Console logging for development
         console.log('🐦 Racing Pigeon Manager with Firebase Authentication is ready!');
         console.log('🔐 Secure user authentication and data storage enabled');
         console.log('☁️ Real-time data synchronization across devices');
+        console.log('🔍 Run window.runDiagnostics() to check Firebase status');
     </script>
 </body>
 </html>
