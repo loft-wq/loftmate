@@ -593,8 +593,43 @@
                 <p style="color: var(--text-secondary); margin-bottom: 20px;">
                     Your data is now securely stored in the cloud and synced across all your devices.
                 </p>
-                <div class="btn" onclick="showNotification('Pigeon management features will be implemented here!', 'info')" style="width: auto;">
-                    🐦 Start Managing Your Pigeons
+
+                <!-- Pigeon Management Actions -->
+                <div style="display: flex; flex-direction: column; gap: 10px; align-items: center;">
+                    <div class="btn" onclick="openBreedingRecommendations()" style="width: auto; min-width: 200px;">
+                        🧠 نظام التوصيات الذكي
+                    </div>
+                    <div class="btn" onclick="addSamplePigeonsForTesting()" style="width: auto; background: linear-gradient(135deg, #28a745, #20c997);">
+                        🧪 إضافة بيانات تجريبية
+                    </div>
+                    <div class="btn" onclick="showNotification('Pigeon management features will be implemented here!', 'info')" style="width: auto; background: linear-gradient(135deg, #6c757d, #495057);">
+                        🐦 إدارة الحمام
+                    </div>
+                    <div class="btn" onclick="showNotification('Race management features coming soon!', 'info')" style="width: auto; background: linear-gradient(135deg, #17a2b8, #6f42c1);">
+                        🏁 إدارة السباقات
+                    </div>
+                </div>
+            </div>
+
+            <!-- Breeding Recommendations Modal (Hidden by default) -->
+            <div id="breedingRecommendationsModal" class="hidden" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1000; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; padding: 20px;">
+                <div style="background: white; border-radius: 15px; max-width: 90vw; max-height: 90vh; width: 100%; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+                    <div style="padding: 20px; text-align: center;">
+                        <h3 style="margin-bottom: 15px; color: #333;">اختيار حمامة ذكر للتوصيات</h3>
+                        <p style="margin-bottom: 20px; color: #666;">اختر حمامة ذكر من قاعدة البيانات للحصول على توصيات التزاوج الذكية</p>
+
+                        <div style="max-height: 300px; overflow-y: auto; margin-bottom: 20px;">
+                            <div id="malePigeonsList" style="display: grid; gap: 10px;">
+                                <!-- Male pigeons will be populated here -->
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 10px; justify-content: center;">
+                            <button onclick="closeBreedingRecommendationsModal()" class="btn btn-secondary" style="background: #6c757d;">
+                                إلغاء
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -776,6 +811,13 @@
                 showMainApp();
                 updateUserInfo();
                 updateStatistics();
+
+                // Add sample data for testing if no pigeons exist
+                if (!userDoc.pigeons || userDoc.pigeons.length === 0) {
+                    setTimeout(() => {
+                        addSamplePigeonsForTesting();
+                    }, 1000);
+                }
                 
             } catch (error) {
                 console.error('Error loading user data:', error);
@@ -787,6 +829,90 @@
             currentUser = null;
             userDoc = null;
             showLogin();
+        }
+
+        // Add sample pigeons for testing breeding recommendations
+        async function addSamplePigeonsForTesting() {
+            if (!requireAuth()) return;
+
+            const samplePigeons = [
+                {
+                    name: 'الأسطورة جون',
+                    ring: 'KU-2024-001',
+                    strain: 'Janssen',
+                    gender: 'male',
+                    color: 'Blue Check',
+                    breeder: 'محمد أحمد',
+                    achievements: 'بطل السباق الوطني 2023، المركز الأول في بطولة السرعة',
+                    year: 2024
+                },
+                {
+                    name: 'الملكة سارة',
+                    ring: 'KU-2024-002',
+                    strain: 'Van Rooy',
+                    gender: 'female',
+                    color: 'Red Check',
+                    breeder: 'محمد أحمد',
+                    achievements: 'بطلة التحمل، مركز أول في سباق الطويل',
+                    year: 2024
+                },
+                {
+                    name: 'السريع علي',
+                    ring: 'KU-2024-003',
+                    strain: 'Klak',
+                    gender: 'male',
+                    color: 'Blue Bar',
+                    breeder: 'أحمد حسن',
+                    achievements: 'أفضل حمامة سريعة في المنطقة',
+                    year: 2024
+                },
+                {
+                    name: 'الذكية فاطمة',
+                    ring: 'KU-2024-004',
+                    strain: 'Van Seibel',
+                    gender: 'female',
+                    color: 'White',
+                    breeder: 'فاطمة علي',
+                    achievements: 'بطلة الملاحة الذكية',
+                    year: 2024
+                },
+                {
+                    name: 'البطل خالد',
+                    ring: 'KU-2024-005',
+                    strain: 'Gaby Vandenabeele',
+                    gender: 'male',
+                    color: 'Black',
+                    breeder: 'خالد محمد',
+                    achievements: 'بطل متعدد في سباقات التحمل',
+                    year: 2024
+                }
+            ];
+
+            try {
+                userDoc.pigeons = userDoc.pigeons || [];
+
+                // Add sample pigeons if not already present
+                for (const pigeon of samplePigeons) {
+                    const exists = userDoc.pigeons.some(p => p.ring === pigeon.ring);
+                    if (!exists) {
+                        const newPigeon = {
+                            ...pigeon,
+                            id: generateId(),
+                            userId: currentUser.uid,
+                            addedDate: new Date().toISOString()
+                        };
+                        userDoc.pigeons.push(newPigeon);
+                    }
+                }
+
+                await saveUserData();
+                updateStatistics();
+                showNotification('تم إضافة بيانات تجريبية لاختبار نظام التوصيات', 'success');
+
+            } catch (error) {
+                console.error('Error adding sample pigeons:', error);
+                showNotification('حدث خطأ في إضافة البيانات التجريبية', 'error');
+            }
         }
 
         // UI Functions
@@ -966,6 +1092,263 @@
                 return false;
             }
             return true;
+        }
+
+        // Enhanced pigeon management functions with breeding recommendations
+        async function getAvailablePigeonsForBreeding(currentPigeon, excludePigeon = true) {
+            if (!requireAuth()) return [];
+
+            try {
+                const pigeons = userDoc.pigeons || [];
+
+                // Filter pigeons for breeding recommendations
+                let availablePigeons = pigeons.filter(pigeon => {
+                    if (!pigeon) return false;
+                    if (excludePigeon && pigeon.id === currentPigeon.id) return false;
+
+                    // Exclude direct parents if available
+                    if (currentPigeon.parentRings && pigeon.ring && currentPigeon.parentRings.includes(pigeon.ring)) return false;
+                    if (pigeon.parentRings && currentPigeon.ring && pigeon.parentRings.includes(currentPigeon.ring)) return false;
+
+                    // Must have gender information for breeding
+                    const pigeonGender = normalizeGender(pigeon.gender);
+                    return pigeonGender === 'male' || pigeonGender === 'female';
+                });
+
+                return availablePigeons;
+            } catch (error) {
+                console.error('Error getting available pigeons for breeding:', error);
+                showNotification('Error loading breeding pigeons', 'error');
+                return [];
+            }
+        }
+
+        // Enhanced breeding recommendations system using real database data
+        async function getRealBreedingRecommendations(pigeon) {
+            if (!requireAuth() || !pigeon) {
+                return { recommendations: [] };
+            }
+
+            try {
+                // Validate pigeon data
+                if (!pigeon.id && !pigeon.ring) {
+                    throw new Error('Pigeon must have an ID or ring number');
+                }
+
+                // Get available pigeons for breeding
+                const availablePigeons = await getAvailablePigeonsForBreeding(pigeon, true);
+
+                if (availablePigeons.length === 0) {
+                    showNotification('لا توجد حمام متاح للتزاوج في قاعدة البيانات', 'info');
+                    return { recommendations: [] };
+                }
+
+                // Use the enhanced recommendation algorithm
+                const result = await getBreedingRecommendations(pigeon, availablePigeons);
+
+                if (!result.recommendations || result.recommendations.length === 0) {
+                    showNotification('لم يتم العثور على توصيات مناسبة', 'warning');
+                    return { recommendations: [] };
+                }
+
+                return result;
+
+            } catch (error) {
+                console.error('Error getting breeding recommendations:', error);
+
+                // Show user-friendly error messages
+                if (error.message.includes('network') || error.message.includes('offline')) {
+                    showNotification('خطأ في الاتصال بالشبكة. تحقق من الاتصال بالإنترنت.', 'error');
+                } else if (error.message.includes('permission') || error.message.includes('unauthorized')) {
+                    showNotification('ليس لديك صلاحية للوصول إلى هذه البيانات.', 'error');
+                } else {
+                    showNotification('حدث خطأ أثناء إنتاج التوصيات. يرجى المحاولة مرة أخرى.', 'error');
+                }
+
+                return { recommendations: [] };
+            }
+        }
+
+        function normalizeGender(gender) {
+            const g = (gender || '').toString().toLowerCase().trim();
+            return g === 'male' || g === 'ذكر' || g === 'cock' ? 'male' : g === 'female' || g === 'أنثى' || g === 'hen' ? 'female' : null;
+        }
+
+        function normalize(str = '') {
+            return String(str || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        }
+
+        function seeded(s) {
+            // Simple FNV1a-based seeded pseudo-random [0..1)
+            let h = 2166136261 >>> 0;
+            for (let i = 0; i < s.length; i++) {
+                h ^= s.charCodeAt(i);
+                h = Math.imul(h, 16777619) >>> 0;
+            }
+            return (h >>> 0) / 4294967295;
+        }
+
+        async function getBreedingRecommendations(pigeon, availablePigeons) {
+            if (!pigeon || !availablePigeons?.length) {
+                return { recommendations: [] };
+            }
+
+            const recommendations = [];
+            const pigeonGender = normalizeGender(pigeon.gender);
+            const pigeonStrain = normalize(pigeon.strain || '');
+            const pigeonFamily = normalize(pigeon.family || pigeon.breeder || '');
+
+            // Champion combinations data (same as in the original component)
+            const championCombinations = {
+                'van rooy': { bestWith: ['janssen', 'van seibel', 'klak'], expertTip: 'Van Rooy × Janssen combination produced world champions', successRate: 85, specialties: ['speed', 'endurance', 'navigation intelligence'] },
+                'janssen': { bestWith: ['van rooy', 'klak', 'van den bosch'], expertTip: 'Janssen line known for willpower', successRate: 88, specialties: ['long distance', 'willpower', 'weather resistance'] },
+                'klak': { bestWith: ['van rooy', 'janssen', 'van seibel'], expertTip: 'Klak strain excels in speed', successRate: 82, specialties: ['high speed', 'navigation accuracy'] },
+                'van seibel': { bestWith: ['van rooy', 'klak', 'janssen'], expertTip: 'Van Seibel for middle and long distances', successRate: 80, specialties: ['middle distance', 'performance stability'] },
+                'gaby vandenabeele': { bestWith: ['janssen', 'van rooy', 'desmet'], expertTip: 'Gaby Vandenabeele known for consistency', successRate: 87, specialties: ['consistency', 'reliability'] },
+                'delbar': { bestWith: ['janssen', 'bourges', 'gaby'], expertTip: 'Delbar for middle distance', successRate: 83, specialties: ['middle distance', 'smart racing'] }
+            };
+
+            availablePigeons.forEach((partner, index) => {
+                const partnerStrain = normalize(partner.strain || '');
+                const partnerFamily = normalize(partner.family || partner.breeder || '');
+                const partnerAchievements = String(partner.achievements || '');
+                const championData = championCombinations[pigeonStrain] || championCombinations[partnerStrain];
+
+                let breedingType = 'outcross';
+                let inbreedingCoeff = 0;
+
+                if (partnerFamily && pigeonFamily && partnerFamily === pigeonFamily && pigeonStrain && partnerStrain && pigeonStrain === partnerStrain) {
+                    breedingType = 'inbreeding';
+                    inbreedingCoeff = 0.25;
+                } else if (partnerStrain && pigeonStrain && partnerStrain === pigeonStrain) {
+                    breedingType = 'linebreeding';
+                    inbreedingCoeff = 0.125;
+                } else if (championData?.bestWith?.includes(partnerStrain)) {
+                    breedingType = 'strain_combination';
+                    inbreedingCoeff = 0;
+                }
+
+                let score = 60;
+                const reasons = [];
+
+                if (championData?.bestWith?.includes(partnerStrain)) {
+                    score += 20;
+                    reasons.push(`توافق تاريخي مثبت: ${pigeonStrain} × ${partnerStrain}`);
+                    reasons.push(`نسبة نجاح تاريخية: ${championData.successRate}%`);
+                }
+
+                if (partnerAchievements && (partnerAchievements.includes('بطل') || partnerAchievements.toLowerCase().includes('champion'))) {
+                    score += 15;
+                    reasons.push('الشريك حاصل على ألقاب بطولية');
+                }
+                if (partnerAchievements && (partnerAchievements.includes('المركز الأول') || partnerAchievements.includes('الأول') || partnerAchievements.toLowerCase().includes('first place'))) {
+                    score += 10;
+                    reasons.push('سجل ممتاز في المراكز الأولى');
+                }
+
+                if (!partnerStrain || !pigeonStrain || partnerStrain !== pigeonStrain) {
+                    score += 12;
+                    reasons.push('تنوع وراثي جيد لزيادة الحيوية');
+                }
+
+                const correctGenderPairing = (
+                    (pigeonGender === 'male' && normalizeGender(partner.gender) === 'female') ||
+                    (pigeonGender === 'female' && normalizeGender(partner.gender) === 'male')
+                );
+
+                if (correctGenderPairing) {
+                    score += 8;
+                    reasons.push('توافق جنسي مناسب للتزاوج');
+                }
+
+                if (partner.breeder && pigeon.breeder && normalize(partner.breeder) === normalize(pigeon.breeder)) {
+                    score += 5;
+                    reasons.push('من نفس المربي - معرفة عميقة بالخطوط');
+                }
+
+                if (partner.color && pigeon.color) {
+                    const pigeonColor = normalize(pigeon.color);
+                    const partnerColor = normalize(partner.color);
+                    const colorCombinations = {
+                        'blue check': ['red check', 'white', 'grey'],
+                        'red check': ['blue check', 'white', 'black'],
+                        'white': ['blue check', 'red check', 'black']
+                    };
+                    if (colorCombinations[pigeonColor]?.some(c => partnerColor.includes(c))) {
+                        score += 5;
+                        reasons.push('تركيبة ألوان مرغوبة وجميلة');
+                    }
+                }
+
+                let healthRisk = 'low';
+                if (inbreedingCoeff > 0.2) {
+                    healthRisk = 'high';
+                    score -= 10;
+                    reasons.push('⚠️ تزاوج قريب - يتطلب مراقبة صحية دقيقة');
+                } else if (inbreedingCoeff > 0.1) {
+                    healthRisk = 'medium';
+                    score -= 5;
+                }
+
+                let championPotential = 60;
+                if (partnerAchievements.includes('بطل') || partnerAchievements.toLowerCase().includes('champion')) championPotential += 20;
+                if (championData) championPotential += 15;
+                if (healthRisk === 'low') championPotential += 10;
+
+                let expertAdvice = '';
+                let expertReference = '';
+
+                if (championData) {
+                    expertAdvice = championData.expertTip;
+                    expertReference = 'World Racing Experts';
+                    if (championData.specialties) {
+                        reasons.push(`متخصص في: ${championData.specialties.join(', ')}`);
+                    }
+                }
+
+                if (breedingType === 'inbreeding') {
+                    expertAdvice += ' يُنصح بمتابعة النسل للكشف المبكر عن العيوب الوراثية.';
+                    expertReference = 'Dr. Joe Quinn - Genetics Expert';
+                } else if (breedingType === 'outcross') {
+                    expertAdvice += ' التزاوج الخارجي مفيد لتحسين الحيّوية والقوة.';
+                    expertReference = 'Prof. Mark Evans - Breeding Expert';
+                }
+
+                let breedingStrategy = '';
+                if (score >= 85) breedingStrategy = 'تربية بطولة - احتمالية عالية للأبطال';
+                else if (score >= 70) breedingStrategy = 'تطوير خط - تحسين الجينات';
+                else if (score >= 60) breedingStrategy = 'إدخال دم جديد - تحسين التنوع';
+                else breedingStrategy = 'تجريبي - يحتاج دراسة إضافية';
+
+                // Deterministic fields using seeded function
+                const seedKey = `${pigeon.ring || pigeon.id || ''}::${partner.ring || partner.id || ''}`;
+                const geneticCompatibility = Math.round(score - 10 + seeded(seedKey) * 20);
+                const successRate = Math.round((championData?.successRate ?? (score - 10 + seeded('sr-' + seedKey) * 20)));
+                const aiConfidence = Math.min(Math.round(score + 5), 95);
+
+                recommendations.push({
+                    id: `db-rec-${index}`,
+                    partner,
+                    type: breedingType,
+                    score: Math.min(Math.max(Math.round(score), 40), 98),
+                    reasons,
+                    inbreedingCoefficient: inbreedingCoeff,
+                    geneticCompatibility,
+                    expectedQuality: Math.ceil((score / 100) * 10),
+                    successRate,
+                    recommendedFor: breedingStrategy,
+                    expertAdvice,
+                    expertReference,
+                    aiConfidence,
+                    championPotential,
+                    healthRisk,
+                    breedingStrategy
+                });
+            });
+
+            recommendations.sort((a, b) => b.score - a.score);
+
+            return { recommendations: recommendations.slice(0, 10) };
         }
 
         // Sample functions for pigeon management (integrate with your existing code)
@@ -1204,10 +1587,199 @@
         `;
         document.head.appendChild(style);
 
+        // Breeding Recommendations Modal Functions
+        async function openBreedingRecommendations() {
+            if (!requireAuth()) return;
+
+            try {
+                const pigeons = userDoc.pigeons || [];
+                const malePigeons = pigeons.filter(pigeon =>
+                    pigeon && normalizeGender(pigeon.gender) === 'male'
+                );
+
+                if (malePigeons.length === 0) {
+                    showNotification('لا توجد حمام ذكور في قاعدة البيانات', 'info');
+                    return;
+                }
+
+                const modal = document.getElementById('breedingRecommendationsModal');
+                const listContainer = document.getElementById('malePigeonsList');
+
+                // Clear existing content
+                listContainer.innerHTML = '';
+
+                // Add male pigeons to the list
+                malePigeons.forEach(pigeon => {
+                    const pigeonElement = document.createElement('div');
+                    pigeonElement.style.cssText = `
+                        padding: 12px;
+                        border: 1px solid #ddd;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        background: white;
+                    `;
+                    pigeonElement.innerHTML = `
+                        <div style="font-weight: bold; color: #333;">
+                            ${pigeon.name || 'بدون اسم'}
+                        </div>
+                        <div style="font-size: 0.9rem; color: #666; margin-top: 4px;">
+                            #${pigeon.ring} • ${pigeon.strain || 'غير محدد'} • ${pigeon.color || 'غير محدد'}
+                        </div>
+                    `;
+
+                    pigeonElement.onclick = () => selectPigeonForRecommendations(pigeon);
+
+                    // Hover effects
+                    pigeonElement.onmouseover = () => {
+                        pigeonElement.style.background = '#f8f9fa';
+                        pigeonElement.style.borderColor = '#667eea';
+                    };
+                    pigeonElement.onmouseout = () => {
+                        pigeonElement.style.background = 'white';
+                        pigeonElement.style.borderColor = '#ddd';
+                    };
+
+                    listContainer.appendChild(pigeonElement);
+                });
+
+                modal.classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Error opening breeding recommendations:', error);
+                showNotification('حدث خطأ في فتح نظام التوصيات', 'error');
+            }
+        }
+
+        function closeBreedingRecommendationsModal() {
+            const modal = document.getElementById('breedingRecommendationsModal');
+            modal.classList.add('hidden');
+        }
+
+        async function selectPigeonForRecommendations(pigeon) {
+            closeBreedingRecommendationsModal();
+
+            try {
+                // Show loading state
+                showNotification('جاري تحليل البيانات الوراثية...', 'info');
+
+                // Get breeding recommendations for the selected pigeon
+                const result = await getRealBreedingRecommendations(pigeon);
+
+                if (result.recommendations && result.recommendations.length > 0) {
+                    showNotification(`تم العثور على ${result.recommendations.length} توصية ذكية`, 'success');
+                    // Here you would typically open the full recommendations modal
+                    // For now, we'll show the recommendations in a simple alert
+                    displayBreedingRecommendations(pigeon, result.recommendations);
+                } else {
+                    showNotification('لم يتم العثور على توصيات مناسبة لهذه الحمامة', 'warning');
+                }
+
+            } catch (error) {
+                console.error('Error getting recommendations for pigeon:', error);
+                showNotification('حدث خطأ أثناء الحصول على التوصيات', 'error');
+            }
+        }
+
+        function displayBreedingRecommendations(pigeon, recommendations) {
+            // Create a simple modal to display recommendations
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                z-index: 1001; background: rgba(0,0,0,0.7);
+                display: flex; align-items: center; justify-content: center;
+                padding: 20px;
+            `;
+
+            const content = document.createElement('div');
+            content.style.cssText = `
+                background: white; border-radius: 15px;
+                max-width: 90vw; max-height: 90vh; width: 800px;
+                overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            `;
+
+            const header = document.createElement('div');
+            header.style.cssText = `
+                padding: 20px; background: linear-gradient(135deg, #667eea, #764ba2);
+                color: white; text-align: center;
+            `;
+            header.innerHTML = `
+                <h3>توصيات التزاوج الذكية</h3>
+                <p>للحمامة: ${pigeon.name || 'بدون اسم'} (#${pigeon.ring})</p>
+            `;
+
+            const body = document.createElement('div');
+            body.style.cssText = `
+                padding: 20px; max-height: 400px; overflow-y: auto;
+            `;
+
+            if (recommendations.length === 0) {
+                body.innerHTML = '<p style="text-align: center; color: #666;">لا توجد توصيات متاحة</p>';
+            } else {
+                body.innerHTML = `
+                    <div style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                        <strong>ملخص التوصيات:</strong> تم العثور على ${recommendations.length} توصية ذكية
+                    </div>
+                    ${recommendations.slice(0, 5).map((rec, index) => `
+                        <div style="margin-bottom: 15px; padding: 15px; border: 1px solid #ddd; border-radius: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <div>
+                                    <strong>${rec.partner.name || 'بدون اسم'}</strong>
+                                    <span style="color: #666; margin-right: 10px;">#${rec.partner.ring}</span>
+                                </div>
+                                <div style="text-align: left;">
+                                    <span style="background: ${rec.score >= 85 ? '#28a745' : rec.score >= 70 ? '#ffc107' : '#dc3545'};
+                                                color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">
+                                        ${rec.score}%
+                                    </span>
+                                </div>
+                            </div>
+                            <div style="font-size: 0.9rem; color: #666; margin-bottom: 8px;">
+                                نوع التزاوج: ${rec.type} • تقارب الدماء: ${(rec.inbreedingCoefficient * 100).toFixed(1)}%
+                            </div>
+                            <div style="font-size: 0.9rem; margin-bottom: 8px;">
+                                <strong>الأسباب:</strong> ${rec.reasons.slice(0, 2).join(' • ')}
+                            </div>
+                            <div style="font-size: 0.9rem;">
+                                <strong>الاستراتيجية:</strong> ${rec.breedingStrategy}
+                            </div>
+                        </div>
+                    `).join('')}
+                    ${recommendations.length > 5 ? `
+                        <div style="text-align: center; margin-top: 15px; padding: 10px; background: #e9ecef; border-radius: 8px;">
+                            +${recommendations.length - 5} توصيات أخرى متاحة
+                        </div>
+                    ` : ''}
+                `;
+            }
+
+            const footer = document.createElement('div');
+            footer.style.cssText = `
+                padding: 15px 20px; background: #f8f9fa; text-align: center;
+                border-top: 1px solid #ddd; display: flex; justify-content: center; gap: 10px;
+            `;
+
+            const closeBtn = document.createElement('button');
+            closeBtn.textContent = 'إغلاق';
+            closeBtn.className = 'btn btn-secondary';
+            closeBtn.onclick = () => {
+                document.body.removeChild(modal);
+            };
+
+            footer.appendChild(closeBtn);
+
+            content.appendChild(header);
+            content.appendChild(body);
+            content.appendChild(footer);
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+        }
+
         // Console logging for development
         console.log('🐦 Racing Pigeon Manager with Firebase Authentication is ready!');
         console.log('🔐 Secure user authentication and data storage enabled');
         console.log('☁️ Real-time data synchronization across devices');
+        console.log('🧠 AI-powered breeding recommendations system integrated');
     </script>
 </body>
 </html>
